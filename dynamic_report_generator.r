@@ -1,0 +1,2 @@
+rmarkdown::render('Unidad2.Rmd', params=list(data = 'wisc_bc_data.csv', variable_of_interest = 'diagnosis'), output_format="pdf_document")
+rmarkdown::render('Unidad2.Rmd', params=list(data = 'wisc_bc_data.csv', variable_of_interest = 'diagnosis'), output_format="html_document")

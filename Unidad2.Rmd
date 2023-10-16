@@ -1,0 +1,236 @@
+---
+title: "k-NN Implementation"
+author: "Vicent Caselles Ballester"
+date: "`r Sys.Date()`"
+output: pdf_document
+params:
+  data: wisc_bc_data.csv
+  variable_of_interest: diagnosis
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+\tableofcontents
+
+```{r echo=FALSE}
+# We specify the file we wanna run the analysis on
+file <- params$data
+variable_of_interest = params$variable_of_interest
+```
+
+# k-NN application to the dataset `r params$data` on the variable `r params$variable_of_interest`.
+
+## Data loading and first exploration
+
+First of all, we upload the dataset. Specifying the file location is done under the hood (not shown).
+
+```{r}
+dataset = read.csv(file, stringsAsFactors = T)
+```
+We explore the dataset using the str function.
+```{r}
+str(dataset)
+```
+
+We drop the id variable.
+```{r}
+dataset <- dataset[-1]
+```
+
+
+We check how many of the tumors are bening (B) and how many are malignant (M)
+```{r}
+table(dataset$diagnosis)
+```
+
+We recode the variable of interest to a factor.
+```{r}
+if (is.factor(dataset[[variable_of_interest]])) {
+  dataset[[variable_of_interest]] <- factor(dataset[[variable_of_interest]], levels = c("B", "M"), labels = c("Benign", "Malignant"))
+}
+```
+
+```{r}
+round(prop.table(table(dataset[[variable_of_interest]])) * 100, digits = 1)
+```
+
+## Min/max normalization
+
+```{r echo=FALSE}
+normalize <- function(x) {
+       return ((x - min(x)) / (max(x) - min(x)))
+}
+```
+
+We normalize all features.
+```{r}
+dataset_normalized = as.data.frame(lapply(dataset[, -which(colnames(dataset) == variable_of_interest)],
+                                          normalize))
+```
+
+We check everything worked out A-OK.
+```{r}
+summary(dataset_normalized$area_mean)
+```
+
+```{r}
+get_splits_percentage <- function(n_dataset){
+  if (n_dataset >= 500){
+    n_test = 100
+    n_train = n_dataset - 100
+  }  
+  else {
+    n_train = ceiling(n_dataset * 0.8) # random split decided by moi
+    n_test = floor(n_dataset * 0.2)
+  }
+  return(c(n_train, n_test))
+}
+```
+
+## Fitting the model
+We define the dataset to used for training and testing.
+```{r}
+splits_to_use=get_splits_percentage(nrow(dataset_normalized))
+dataset_train = dataset_normalized[1:splits_to_use[1], ]
+dataset_test = dataset_normalized[(splits_to_use[1]+1):nrow(dataset_normalized), ]
+labels_train = dataset[[variable_of_interest]][1:splits_to_use[1]]
+labels_test = dataset[[variable_of_interest]][(splits_to_use[1]+1):nrow(dataset_normalized)]
+```
+
+Now we'll use the `knn` function from the `class` package to fit the model.
+```{r}
+require(class)
+
+test_pred = knn(train = dataset_train, test = dataset_test, 
+                cl = labels_train, k = 21)
+```
+
+```{r}
+require(gmodels)
+CrossTable(x = labels_test, y=test_pred, prop.chisq = F)
+```
+
+## Improving the model
+
+### Z-score Transformation
+
+Now we try with z-score normalization.
+```{r}
+dataset_zscored = as.data.frame(scale(dataset[, -which(colnames(dataset) == variable_of_interest)]))
+summary(dataset_zscored$area_mean)
+```
+
+We define the training and test set again.
+```{r}
+train_zscore = dataset_zscored[1:splits_to_use[1], ]
+test_zscore = dataset_zscored[(splits_to_use[1]+1):nrow(dataset_zscored), ]
+```
+
+We predict again the labels now using the zscore normalized dataset, and visualize the results using the CrossTable function.
+```{r}
+zscore_pred_test = knn(train=train_zscore, test=test_zscore, 
+                       cl=labels_train, k = ceiling(sqrt(nrow(train_zscore))))
+
+CrossTable(x=labels_test, y=zscore_pred_test, prop.chisq=F)
+```
+
+### Alternative values of k
+
+I'm not showing the code used to generate the data because it's ugly. If you wanna know my secrets open the Rmd file directly (please don't).
+
+```{r echo = FALSE, results='hide'}
+ks_to_try <- c(1, 5, 11, 15, 21, 27)
+TPR <- c()
+TNR <- c()
+
+for (k in ks_to_try){
+  pred_test = knn(train=dataset_train, test=dataset_test, 
+                       cl=labels_train, k = k)
+  table_with_fn_fp = CrossTable(x=labels_test, y=pred_test, prop.chisq=F)
+  TPR = append(TPR, values = table_with_fn_fp$prop.row[1,1])
+  TNR = append(TNR, values = table_with_fn_fp$prop.row[2,2])
+}
+```
+
+```{r echo = FALSE}
+ks = c(ks_to_try, ks_to_try)
+accuracy_rates = c(TPR, TNR)
+TPRTNR = c(rep("TPR", length(TPR)), rep("TNR", length(TNR)))
+
+accuracy =data.frame(ks, accuracy_rates, TPRTNR)
+require(ggplot2, quietly = TRUE)
+ggplot(accuracy, aes(x=ks, y=accuracy_rates, 
+                     colour=TPRTNR)) + 
+  geom_line()
+
+```
+
+# Appendix: "(Super-slow) Manual implementation of k-NN algorithm"
+Just for fun I'm gonna implement the k-NN algorithm myself.
+```{r}
+get_distance_obs <- function(vector1, vector2){
+  return(sqrt(sum((vector1 - vector2)**2)))
+}
+
+compute_distance_y_to_train_observations <- function(y, train_obs){
+  distances = c()
+  for (row in 1:nrow(train_obs)){
+    distances = append(distances, get_distance_obs(y, train_obs[row, ]))
+  }
+  return(distances)
+}
+
+subset_k_distances <- function(vector_distances, k){
+  # Returns indices of values that minimize our distance function
+  k_min_distances = which(vector_distances <= max(sort(vector_distances, decreasing = F)[1:k]))
+  return(k_min_distances)
+}
+
+get_labels_corresponding_to_k_neighbors <- function(train_labels, indices){
+  return(train_labels[indices])
+}
+
+predict_one_observation <- function(y_obs, train_data, k, train_labels){
+  distances_to_train_data <- compute_distance_y_to_train_observations(y_obs, train_data)
+  k_distance_indices = subset_k_distances(distances_to_train_data, k=k)
+  labels_sliced = get_labels_corresponding_to_k_neighbors(train_labels, k_distance_indices)
+  return(names(sort(summary(labels_sliced), decreasing = T)[1]))
+}
+
+predict_all_observations <- function(dataset_with_ys, train_data, k, train_labels){
+  predicted_labels_vec = c()
+  if (is.data.frame(dataset_with_ys)){
+    n_observations_to_predict = nrow(dataset_with_ys)
+    for (obs in 1:n_observations_to_predict){
+      predicted_label = predict_one_observation(y_obs=dataset_with_ys[obs, ], 
+                                                train_data = train_data, 
+                                                k=k, train_labels = train_labels)
+      predicted_labels_vec = append(predicted_labels_vec, predicted_label)
+    }
+  }
+  else if (is.vector(dataset_with_ys)){
+    for (obs in dataset_with_ys){
+      predicted_label = predict_one_observation(y_obs=obs, 
+                                                train_data = train_data, 
+                                                k=k, train_labels = train_labels)
+      predicted_labels_vec = append(predicted_labels_vec, predicted_label)
+    }
+  }
+  else {
+    stop("Non supported data type")
+  }
+  return(predicted_labels_vec)
+}
+```
+
+```{r}
+labels_by_moi = predict_all_observations(dataset_with_ys = dataset_test, train_data = dataset_train,
+                                         k=21, train_labels = labels_train)
+using_knn_already_implemented = knn(train=dataset_train, test=dataset_test, cl=labels_train, k=21)
+
+labels_by_moi == using_knn_already_implemented
+```
+
+Com veiem, em dóna igual (aleluya). El meu codi és probablement 10000000 vegades més lent que la funció knn del paquet `class`, però ara mateix no tinc temps per a millorar-ho (i crec que tampoc és l'objectiu de l'activitat). Ho faria utilitzant apply enlloc de utilitzar `for loops`, i si fos en `Python` faria servir numpy i vectorització, no sé si a R hi ha algun equivalent.
