@@ -26,8 +26,8 @@ variable_of_interest = params$variable_of_interest
 
 ## Pros and cons of k-NN algorithm
 
-```{r echo = FALSE}
-require(dplyr)
+```{r echo = FALSE, warning=FALSE}
+require(dplyr, quietly=T)
 pros = c("Simple and effective",
          "Makes no assumptions about the underlying data distribution",
          "Fast training phase",
@@ -42,34 +42,36 @@ knitr::kable(pros_and_cons, caption = "**Strenghts and weaknesses of the k-NN al
              col.names = c("**Strengths**", "**Weaknesses**"))
 ```
 
-
 ## Data loading and first exploration
 
-First of all, we upload the dataset. Specifying the file location is done under the hood (not shown).
+First of all, we upload the dataset.
 
 ```{r}
 dataset = read.csv(file, stringsAsFactors = T)
 ```
+
 We explore the dataset using the str function.
 ```{r}
 str(dataset)
 ```
 
-We drop the id variable.
+We drop the id variable, which we won't be needing.
 ```{r}
-dataset <- dataset[-1]
+if ("id" %in% colnames(dataset)){
+  dataset <- dataset[-which(colnames(dataset)=='id')]
+}
 ```
 
 
-We check how many of the tumors are bening (B) and how many are malignant (M)
+We check how many of the tumors are benign (B) and how many are malignant (M).
 ```{r}
 table(dataset$diagnosis)
 ```
 
 We recode the variable of interest to a factor.
 ```{r}
-if (is.factor(dataset[[variable_of_interest]])) {
-  dataset[[variable_of_interest]] <- factor(dataset[[variable_of_interest]], levels = c("B", "M"), labels = c("Benign", "Malignant"))
+if (!is.factor(dataset[[variable_of_interest]])) {
+  dataset[[variable_of_interest]] <- as.factor(dataset[[variable_of_interest]])
 }
 ```
 
@@ -85,7 +87,7 @@ normalize <- function(x) {
 }
 ```
 
-We normalize all features.
+We normalize all features and substract the label 
 ```{r}
 dataset_normalized = as.data.frame(lapply(dataset[, -which(colnames(dataset) == variable_of_interest)],
                                           normalize))
@@ -95,6 +97,8 @@ We check everything worked out A-OK.
 ```{r}
 summary(dataset_normalized$area_mean)
 ```
+
+We define the function that I'll use to generate the splits for training/test.
 
 ```{r}
 get_splits_percentage <- function(n_dataset){
@@ -111,6 +115,7 @@ get_splits_percentage <- function(n_dataset){
 ```
 
 ## Fitting the model
+
 We define the dataset to used for training and testing.
 ```{r}
 splits_to_use=get_splits_percentage(nrow(dataset_normalized))
@@ -226,14 +231,6 @@ predict_all_observations <- function(dataset_with_ys, train_data, k, train_label
     n_observations_to_predict = nrow(dataset_with_ys)
     for (obs in 1:n_observations_to_predict){
       predicted_label = predict_one_observation(y_obs=dataset_with_ys[obs, ], 
-                                                train_data = train_data, 
-                                                k=k, train_labels = train_labels)
-      predicted_labels_vec = append(predicted_labels_vec, predicted_label)
-    }
-  }
-  else if (is.vector(dataset_with_ys)){
-    for (obs in dataset_with_ys){
-      predicted_label = predict_one_observation(y_obs=obs, 
                                                 train_data = train_data, 
                                                 k=k, train_labels = train_labels)
       predicted_labels_vec = append(predicted_labels_vec, predicted_label)

@@ -1642,8 +1642,8 @@ algorithm</strong></caption>
 </colgroup>
 <thead>
 <tr class="header">
-<th align="left">Strengths</th>
-<th align="left">Weaknesses</th>
+<th align="left"><strong>Strengths</strong></th>
+<th align="left"><strong>Weaknesses</strong></th>
 </tr>
 </thead>
 <tbody>
@@ -1671,8 +1671,7 @@ processing</td>
 </div>
 <div id="data-loading-and-first-exploration" class="section level2">
 <h2>Data loading and first exploration</h2>
-<p>First of all, we upload the dataset. Specifying the file location is
-done under the hood (not shown).</p>
+<p>First of all, we upload the dataset.</p>
 <pre class="r"><code>dataset = read.csv(file, stringsAsFactors = T)</code></pre>
 <p>We explore the dataset using the str function.</p>
 <pre class="r"><code>str(dataset)</code></pre>
@@ -1709,32 +1708,36 @@ done under the hood (not shown).</p>
 ##  $ points_worst     : num  0.0939 0.0793 0.0743 0.0861 0.0818 ...
 ##  $ symmetry_worst   : num  0.283 0.294 0.3 0.21 0.249 ...
 ##  $ dimension_worst  : num  0.0677 0.0759 0.0788 0.0678 0.0677 ...</code></pre>
-<p>We drop the id variable.</p>
-<pre class="r"><code>dataset &lt;- dataset[-1]</code></pre>
-<p>We check how many of the tumors are bening (B) and how many are
-malignant (M)</p>
+<p>We drop the id variable, which we won’t be needing.</p>
+<pre class="r"><code>if (&quot;id&quot; %in% colnames(dataset)){
+  dataset &lt;- dataset[-which(colnames(dataset)==&#39;id&#39;)]
+}</code></pre>
+<p>We check how many of the tumors are benign (B) and how many are
+malignant (M).</p>
 <pre class="r"><code>table(dataset$diagnosis)</code></pre>
 <pre><code>## 
 ##   B   M 
 ## 357 212</code></pre>
 <p>We recode the variable of interest to a factor.</p>
-<pre class="r"><code>if (is.factor(dataset[[variable_of_interest]])) {
-  dataset[[variable_of_interest]] &lt;- factor(dataset[[variable_of_interest]], levels = c(&quot;B&quot;, &quot;M&quot;), labels = c(&quot;Benign&quot;, &quot;Malignant&quot;))
+<pre class="r"><code>if (!is.factor(dataset[[variable_of_interest]])) {
+  dataset[[variable_of_interest]] &lt;- as.factor(dataset[[variable_of_interest]])
 }</code></pre>
 <pre class="r"><code>round(prop.table(table(dataset[[variable_of_interest]])) * 100, digits = 1)</code></pre>
 <pre><code>## 
-##    Benign Malignant 
-##      62.7      37.3</code></pre>
+##    B    M 
+## 62.7 37.3</code></pre>
 </div>
 <div id="minmax-normalization" class="section level2">
 <h2>Min/max normalization</h2>
-<p>We normalize all features.</p>
+<p>We normalize all features and substract the label</p>
 <pre class="r"><code>dataset_normalized = as.data.frame(lapply(dataset[, -which(colnames(dataset) == variable_of_interest)],
                                           normalize))</code></pre>
 <p>We check everything worked out A-OK.</p>
 <pre class="r"><code>summary(dataset_normalized$area_mean)</code></pre>
 <pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
 ##  0.0000  0.1174  0.1729  0.2169  0.2711  1.0000</code></pre>
+<p>We define the function that I’ll use to generate the splits for
+training/test.</p>
 <pre class="r"><code>get_splits_percentage &lt;- function(n_dataset){
   if (n_dataset &gt;= 500){
     n_test = 100
@@ -1778,14 +1781,14 @@ CrossTable(x = labels_test, y=test_pred, prop.chisq = F)</code></pre>
 ## 
 ##  
 ##              | test_pred 
-##  labels_test |    Benign | Malignant | Row Total | 
+##  labels_test |         B |         M | Row Total | 
 ## -------------|-----------|-----------|-----------|
-##       Benign |        61 |         0 |        61 | 
+##            B |        61 |         0 |        61 | 
 ##              |     1.000 |     0.000 |     0.610 | 
 ##              |     0.968 |     0.000 |           | 
 ##              |     0.610 |     0.000 |           | 
 ## -------------|-----------|-----------|-----------|
-##    Malignant |         2 |        37 |        39 | 
+##            M |         2 |        37 |        39 | 
 ##              |     0.051 |     0.949 |     0.390 | 
 ##              |     0.032 |     1.000 |           | 
 ##              |     0.020 |     0.370 |           | 
@@ -1829,14 +1832,14 @@ CrossTable(x=labels_test, y=zscore_pred_test, prop.chisq=F)</code></pre>
 ## 
 ##  
 ##              | zscore_pred_test 
-##  labels_test |    Benign | Malignant | Row Total | 
+##  labels_test |         B |         M | Row Total | 
 ## -------------|-----------|-----------|-----------|
-##       Benign |        61 |         0 |        61 | 
+##            B |        61 |         0 |        61 | 
 ##              |     1.000 |     0.000 |     0.610 | 
 ##              |     0.924 |     0.000 |           | 
 ##              |     0.610 |     0.000 |           | 
 ## -------------|-----------|-----------|-----------|
-##    Malignant |         5 |        34 |        39 | 
+##            M |         5 |        34 |        39 | 
 ##              |     0.128 |     0.872 |     0.390 | 
 ##              |     0.076 |     1.000 |           | 
 ##              |     0.050 |     0.340 |           | 
@@ -1895,14 +1898,6 @@ predict_all_observations &lt;- function(dataset_with_ys, train_data, k, train_la
     n_observations_to_predict = nrow(dataset_with_ys)
     for (obs in 1:n_observations_to_predict){
       predicted_label = predict_one_observation(y_obs=dataset_with_ys[obs, ], 
-                                                train_data = train_data, 
-                                                k=k, train_labels = train_labels)
-      predicted_labels_vec = append(predicted_labels_vec, predicted_label)
-    }
-  }
-  else if (is.vector(dataset_with_ys)){
-    for (obs in dataset_with_ys){
-      predicted_label = predict_one_observation(y_obs=obs, 
                                                 train_data = train_data, 
                                                 k=k, train_labels = train_labels)
       predicted_labels_vec = append(predicted_labels_vec, predicted_label)
