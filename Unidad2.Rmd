@@ -2,7 +2,9 @@
 title: "k-NN Implementation"
 author: "Vicent Caselles Ballester"
 date: "`r Sys.Date()`"
-output: pdf_document
+output:
+  html_document:
+    df_print: paged
 params:
   data: wisc_bc_data.csv
   variable_of_interest: diagnosis
@@ -21,6 +23,25 @@ variable_of_interest = params$variable_of_interest
 ```
 
 # k-NN application to the dataset `r params$data` on the variable `r params$variable_of_interest`.
+
+## Pros and cons of k-NN algorithm
+
+```{r echo = FALSE}
+require(dplyr)
+pros = c("Simple and effective",
+         "Makes no assumptions about the underlying data distribution",
+         "Fast training phase",
+         "")
+cons = c("Does not produce a model, limiting the ability to understand how the features are related to the class", "Requires selection of an appropriate k", 
+         "Slow classification phase", 
+         "Nominal features and missing data require additional processing")
+
+pros_and_cons = data.frame(pros, cons)
+
+knitr::kable(pros_and_cons, caption = "**Strenghts and weaknesses of the k-NN algorithm**",
+             col.names = c("**Strengths**", "**Weaknesses**"))
+```
+
 
 ## Data loading and first exploration
 

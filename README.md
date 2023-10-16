@@ -5,6 +5,8 @@ To generate the output pdf and html documents, save the dataset (has to be .csv 
 
 Once you've done that, generate the reports using the following code from the command-line. Tested on MacOS. I don't know how it works in Windows (PowerShell).
 
-`Rscript dynamic_report_generator.r`
+```bash
+Rscript dynamic_report_generator.r
+```
 
 Requires Rscript, markdown, R, knitr and all the usual packages for knitting RMarkdown reports.
