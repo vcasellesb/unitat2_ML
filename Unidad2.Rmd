@@ -193,7 +193,7 @@ ggplot(accuracy, aes(x=ks, y=accuracy_rates,
 
 ```
 
-# Appendix: "(Super-slow) Manual implementation of k-NN algorithm"
+# Appendix: "(Not-So-Slow-Anymore) Manual implementation of k-NN algorithm"
 Just for fun I'm gonna implement the k-NN algorithm myself.
 ```{r}
 get_distance_obs <- function(vector1, vector2){
@@ -209,7 +209,8 @@ vectorize_obs_and_train_data <- function(y, train_obs){
 compute_distance_y_to_train_observations <- function(y, train_obs){
   matrix_all_data = vectorize_obs_and_train_data(y, train_obs)
   distances = apply(X=matrix_all_data, MARGIN=1, 
-                    FUN = function(x) get_distance_obs(x[1:ncol(y)], x[(ncol(y)+1):ncol(matrix_all_data)]))
+                    FUN = function(x) get_distance_obs(x[1:ncol(y)],
+                                                       x[(ncol(y)+1):ncol(matrix_all_data)]))
   return(distances)
 }
 

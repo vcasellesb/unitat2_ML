@@ -1633,14 +1633,6 @@ display: none;
 diagnosis.</h1>
 <div id="pros-and-cons-of-k-nn-algorithm" class="section level2">
 <h2>Pros and cons of k-NN algorithm</h2>
-<pre><code>## 
-## Attaching package: &#39;dplyr&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:stats&#39;:
-## 
-##     filter, lag</code></pre>
-<pre><code>## The following objects are masked from &#39;package:base&#39;:
-## 
-##     intersect, setdiff, setequal, union</code></pre>
 <table>
 <caption><strong>Strenghts and weaknesses of the k-NN
 algorithm</strong></caption>
@@ -1768,13 +1760,12 @@ labels_train = dataset[[variable_of_interest]][1:splits_to_use[1]]
 labels_test = dataset[[variable_of_interest]][(splits_to_use[1]+1):nrow(dataset_normalized)]</code></pre>
 <p>Now we’ll use the <code>knn</code> function from the
 <code>class</code> package to fit the model.</p>
-<pre class="r"><code>require(class)</code></pre>
-<pre><code>## Loading required package: class</code></pre>
-<pre class="r"><code>test_pred = knn(train = dataset_train, test = dataset_test, 
+<pre class="r"><code>require(class)
+
+test_pred = knn(train = dataset_train, test = dataset_test, 
                 cl = labels_train, k = 21)</code></pre>
-<pre class="r"><code>require(gmodels)</code></pre>
-<pre><code>## Loading required package: gmodels</code></pre>
-<pre class="r"><code>CrossTable(x = labels_test, y=test_pred, prop.chisq = F)</code></pre>
+<pre class="r"><code>require(gmodels)
+CrossTable(x = labels_test, y=test_pred, prop.chisq = F)</code></pre>
 <pre><code>## 
 ##  
 ##    Cell Contents
@@ -1941,6 +1932,8 @@ crec que tampoc és l’objectiu de l’activitat). Ho faria utilitzant apply
 enlloc de utilitzar <code>for loops</code>, i si fos en
 <code>Python</code> faria servir numpy i vectorització, no sé si a R hi
 ha algun equivalent.</p>
+<p>Update: He vectoritzat el codi i el temps de compilació potser s’ha
+reduït en ~10-fold. Visca!</p>
 </div>
 
 
