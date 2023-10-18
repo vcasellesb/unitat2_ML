@@ -11,7 +11,7 @@
 
 <meta name="author" content="Vicent Caselles Ballester" />
 
-<meta name="date" content="2023-10-16" />
+<meta name="date" content="2023-10-18" />
 
 <title>k-NN Implementation</title>
 
@@ -1623,7 +1623,7 @@ display: none;
 
 <h1 class="title toc-ignore">k-NN Implementation</h1>
 <h4 class="author">Vicent Caselles Ballester</h4>
-<h4 class="date">2023-10-16</h4>
+<h4 class="date">2023-10-18</h4>
 
 </div>
 
@@ -1633,6 +1633,14 @@ display: none;
 diagnosis.</h1>
 <div id="pros-and-cons-of-k-nn-algorithm" class="section level2">
 <h2>Pros and cons of k-NN algorithm</h2>
+<pre><code>## 
+## Attaching package: &#39;dplyr&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:stats&#39;:
+## 
+##     filter, lag</code></pre>
+<pre><code>## The following objects are masked from &#39;package:base&#39;:
+## 
+##     intersect, setdiff, setequal, union</code></pre>
 <table>
 <caption><strong>Strenghts and weaknesses of the k-NN
 algorithm</strong></caption>
@@ -1760,12 +1768,13 @@ labels_train = dataset[[variable_of_interest]][1:splits_to_use[1]]
 labels_test = dataset[[variable_of_interest]][(splits_to_use[1]+1):nrow(dataset_normalized)]</code></pre>
 <p>Now we’ll use the <code>knn</code> function from the
 <code>class</code> package to fit the model.</p>
-<pre class="r"><code>require(class)
-
-test_pred = knn(train = dataset_train, test = dataset_test, 
+<pre class="r"><code>require(class)</code></pre>
+<pre><code>## Loading required package: class</code></pre>
+<pre class="r"><code>test_pred = knn(train = dataset_train, test = dataset_test, 
                 cl = labels_train, k = 21)</code></pre>
-<pre class="r"><code>require(gmodels)
-CrossTable(x = labels_test, y=test_pred, prop.chisq = F)</code></pre>
+<pre class="r"><code>require(gmodels)</code></pre>
+<pre><code>## Loading required package: gmodels</code></pre>
+<pre class="r"><code>CrossTable(x = labels_test, y=test_pred, prop.chisq = F)</code></pre>
 <pre><code>## 
 ##  
 ##    Cell Contents
@@ -1867,11 +1876,16 @@ algorithm”</h1>
   return(sqrt(sum((vector1 - vector2)**2)))
 }
 
+vectorize_obs_and_train_data &lt;- function(y, train_obs){
+  y_matrix = matrix(rep(as.numeric(y), nrow(train_obs)), byrow=TRUE, ncol=ncol(y))
+  train_obs = unname(as.matrix(train_obs))
+  matrix_all_data = cbind(train_obs, y_matrix)
+  return(matrix_all_data)
+}
 compute_distance_y_to_train_observations &lt;- function(y, train_obs){
-  distances = c()
-  for (row in 1:nrow(train_obs)){
-    distances = append(distances, get_distance_obs(y, train_obs[row, ]))
-  }
+  matrix_all_data = vectorize_obs_and_train_data(y, train_obs)
+  distances = apply(X=matrix_all_data, MARGIN=1, 
+                    FUN = function(x) get_distance_obs(x[1:ncol(y)], x[(ncol(y)+1):ncol(matrix_all_data)]))
   return(distances)
 }
 

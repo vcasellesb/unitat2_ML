@@ -200,11 +200,16 @@ get_distance_obs <- function(vector1, vector2){
   return(sqrt(sum((vector1 - vector2)**2)))
 }
 
+vectorize_obs_and_train_data <- function(y, train_obs){
+  y_matrix = matrix(rep(as.numeric(y), nrow(train_obs)), byrow=TRUE, ncol=ncol(y))
+  train_obs = unname(as.matrix(train_obs))
+  matrix_all_data = cbind(train_obs, y_matrix)
+  return(matrix_all_data)
+}
 compute_distance_y_to_train_observations <- function(y, train_obs){
-  distances = c()
-  for (row in 1:nrow(train_obs)){
-    distances = append(distances, get_distance_obs(y, train_obs[row, ]))
-  }
+  matrix_all_data = vectorize_obs_and_train_data(y, train_obs)
+  distances = apply(X=matrix_all_data, MARGIN=1, 
+                    FUN = function(x) get_distance_obs(x[1:ncol(y)], x[(ncol(y)+1):ncol(matrix_all_data)]))
   return(distances)
 }
 
@@ -252,3 +257,5 @@ labels_by_moi == using_knn_already_implemented
 ```
 
 Com veiem, em dóna igual (aleluya). El meu codi és probablement 10000000 vegades més lent que la funció knn del paquet `class`, però ara mateix no tinc temps per a millorar-ho (i crec que tampoc és l'objectiu de l'activitat). Ho faria utilitzant apply enlloc de utilitzar `for loops`, i si fos en `Python` faria servir numpy i vectorització, no sé si a R hi ha algun equivalent.
+
+Update: He vectoritzat el codi i el temps de compilació potser s'ha reduït en ~10-fold. Visca!
